@@ -8,15 +8,6 @@
 		audioContext = window.AudioContext || window.webkitAudioContext;
 		context = new audioContext();	
 
-		/*create random frequency oscillator
-		oscillator = context.createOscillator();
-		oscillator.frequency.value = 400 + Math.round(Math.random()*1000);
-		*/
-
-		// load audio from file
-		audio = new Audio();
-                audio.src = "1.mp3";
-		audioSource = context.createMediaElementSource(audio);
 		// create script processor that write the buffer into the channel
   		recorder = context.createScriptProcessor(BUFFER_SIZE, 1, 1);
   		recorder.onaudioprocess = function(e){
@@ -37,11 +28,15 @@
      			 }
      			 return buf
    		 }
-
-
-		audioSource.connect(recorder);
 		recorder.connect(context.destination);
-		//audio.play();
+
+                synth = document.getElementById("synth");
+                osc = context.createOscillator();
+                osc.frequency.value = 400 + Math.round(Math.random()*500);
+                osc.connect(recorder);
+                recorder.connect(context.destination);
+
+                // get already existing streams
 	});
 
 	client.on('stream', function(stream, meta) {

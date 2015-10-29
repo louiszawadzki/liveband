@@ -14,7 +14,16 @@ app.listen(8081);
 
 var server = binaryServer({port:9000});
 server.on('connection', function(client){
-	console.log("new connection");
+    for (var clientKey in server.clients){
+	    var otherClient = server.clients[clientKey];
+	    if (otherClient != client) {
+            for (var streamKey in otherClient.streams){
+                var stream = otherClient.streams[streamKey];
+                var send = client.createStream();
+                stream.pipe(send);
+            }
+        }            
+    }
     client.on('stream', function(stream, meta){
 	    for (var clientKey in server.clients){
 		    var otherClient = server.clients[clientKey];
