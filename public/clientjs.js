@@ -30,27 +30,44 @@
    		 }
 		recorder.connect(context.destination);
 
-                synth = document.getElementById("synth");
-                osc = context.createOscillator();
-                osc.frequency.value = 400 + Math.round(Math.random()*500);
-                osc.connect(recorder);
-                recorder.connect(context.destination);
-
-                // get already existing streams
+        addSynth = document.getElementById("addSynth");
+        addSynth.onclick = function(){createOscillator(600, context, recorder)};
 	});
 
 	client.on('stream', function(stream, meta) {
 		stream.on('data', function(data) {
-		        var source = context.createBufferSource();
-		        source.connect(context.destination);
+	        var source = context.createBufferSource();
+	        source.connect(context.destination);
 			var audio = new Float32Array(data);
 			var audioBuffer = context.createBuffer(1, audio.length, 44100);
 			audioBuffer.getChannelData(0).set(audio);
 			source.buffer = audioBuffer;
-                        source.start();
+            source.start();
 		});
 	});
 
+    createOscillator = function (frequency, acontext, parentNode) {
+        var osc = acontext.createOscillator();
+        osc.frequency.value = frequency;
+        osc.connect(parentNode);
+        osc.start();
 
+        var synthRack = document.getElementById("synthRack");
+        var synth = document.createElement("div");
+        synth.className = "synth";
+
+        var frequencyField = document.createElement("input")
+        frequencyField.setAttribute("type", "number");
+        frequencyField.setAttribute("min", "100");
+        frequencyField.setAttribute("max", "1200");
+        frequencyField.setAttribute("value", frequency);
+
+        frequencyField.onchange = function(e){
+            osc.frequency.value = this.value;
+        };
+        synth.appendChild(frequencyField);
+        synthRack.appendChild(synth);
+        
+    }
 
 })(this);
