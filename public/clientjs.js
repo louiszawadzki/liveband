@@ -1,6 +1,6 @@
 (function(window) {
 	var BUFFER_SIZE = 1024;
-	var client = new Peer('idd', {host: 'localhost', port: '9001'});
+	var client = new Peer('someid', {host: 'localhost', port: '9001'});
 	client.on('open', function(){
 		// create stream
 		window.Stream = client.createStream();

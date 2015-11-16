@@ -1,4 +1,4 @@
-var binaryServer = require('binaryjs').BinaryServer;
+//var binaryServer = require('binaryjs').BinaryServer;
 var express = require('express');
 var PeerServer = require('peer').PeerServer;
 var server = PeerServer({port:9001});
@@ -14,10 +14,10 @@ app.get('/', function(req, res){
 
 app.listen(8081);
 
-server.on('connection', function(client){
+server.on('connection', function(client_id){
     for (var clientKey in server.clients){
 	    var otherClient = server.clients[clientKey];
-	    if (otherClient != client) {
+	    if (clientKey != client_id) {
             for (var streamKey in otherClient.streams){
                 var stream = otherClient.streams[streamKey];
                 var send = client.createStream();
@@ -25,7 +25,7 @@ server.on('connection', function(client){
             }
         }            
     }
-    client.on('stream', function(stream, meta){
+    server.clients[client_id].on('stream', function(stream, meta){
 	    for (var clientKey in server.clients){
 		    var otherClient = server.clients[clientKey];
 		    if (otherClient != client) {
@@ -34,7 +34,8 @@ server.on('connection', function(client){
             }            
 	    }
     });
-    client.on('close', function() {
-        //TODO
-    });
+});
+
+server.on('disconnection', function(client_id){
+	//TODO
 });
