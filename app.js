@@ -1,5 +1,7 @@
 var binaryServer = require('binaryjs').BinaryServer;
 var express = require('express');
+var PeerServer = require('peer').PeerServer;
+var server = PeerServer({port:9001});
 
 var app = express();
 app.set('views', __dirname + "/public");
@@ -12,7 +14,6 @@ app.get('/', function(req, res){
 
 app.listen(8081);
 
-var server = binaryServer({port:9000});
 server.on('connection', function(client){
     for (var clientKey in server.clients){
 	    var otherClient = server.clients[clientKey];
