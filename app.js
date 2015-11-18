@@ -1,41 +1,30 @@
-//var binaryServer = require('binaryjs').BinaryServer;
 var express = require('express');
-var PeerServer = require('peer').PeerServer;
-var server = PeerServer({port:9001});
-
 var app = express();
+var ExpressPeerServer = require('peer').ExpressPeerServer;
+
 app.set('views', __dirname + "/public");
-app.set('view engine', 'html');
+app.engine('html', require('ejs').renderFile);
+app.set('view engine', 'ejs');
 app.use(express.static(__dirname + '/public'))
-
 app.get('/', function(req, res){
-	res.render('index');
+		res.render('index.html');
 });
 
-app.listen(8081);
+var options = {
+    debug: true
+}
+var server = require('http').createServer(app);
 
-server.on('connection', function(client_id){
-    for (var clientKey in server.clients){
-	    var otherClient = server.clients[clientKey];
-	    if (clientKey != client_id) {
-            for (var streamKey in otherClient.streams){
-                var stream = otherClient.streams[streamKey];
-                var send = client.createStream();
-                stream.pipe(send);
-            }
-        }            
-    }
-    server.clients[client_id].on('stream', function(stream, meta){
-	    for (var clientKey in server.clients){
-		    var otherClient = server.clients[clientKey];
-		    if (otherClient != client) {
-                var send = otherClient.createStream(meta);
-                stream.pipe(send);
-            }            
-	    }
-    });
+app.use('/peerjs', ExpressPeerServer(server, options));
+
+server.listen(8081);
+
+var clientsId = [];
+
+server.on('connection', function(id){
+	//
 });
 
-server.on('disconnection', function(client_id){
-	//TODO
+server.on('disconnect', function(id){
+	//
 });

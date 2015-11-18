@@ -1,55 +1,43 @@
 (function(window) {
-	var BUFFER_SIZE = 1024;
-	var client = new Peer('someid', {host: 'localhost', port: '9001'});
-	client.on('open', function(){
-		// create stream
-		window.Stream = client.createStream();
-		//set audio context
-		audioContext = window.AudioContext || window.webkitAudioContext;
-		context = new audioContext();	
+	//set audio context
+	audioContext = window.AudioContext || window.webkitAudioContext || window.mozAudioContext;
+	context = new audioContext();	
 
-		// create script processor that write the buffer into the channel
-  		recorder = context.createScriptProcessor(BUFFER_SIZE, 1, 1);
-  		recorder.onaudioprocess = function(e){
-            		var left = e.inputBuffer.getChannelData(0);
-            		window.Stream.write(left);
-                        for (var sample = 0; sample < left.length; sample++) {
-                        // make output equal to the same as the input
-                                e.outputBuffer.getChannelData(0)[sample] = left[sample];
-                        }
-                }
+	// Stream node
+	var streamNode = context.createMediaStreamDestination();
+	var dest       = context.destination;
+	
+	//P2P part
+    var peer = new Peer({host: 'localhost', port: 8081, path :'/peerjs'});
+    peer.on('open', function(id) {
+    	console.log('My id is ' + id);
+    });
+    peer.on('call', function(call){
+    	call.answer(streamNode.stream);
+    	streamPeer(call, context);
+    	console.log('call successful!')
+    })
+	
+	// function for the button that triggers the call
+	document.getElementById('call').onclick = function(){
+		var callid = document.getElementById('callto').value;
+		var call = peer.call(callid, streamNode.stream);
+		
+		streamPeer(call, context);
+	};
 
-		function convertoFloat32ToInt16(buffer) {
-      			var l = buffer.length;
-      			var buf = new Int16Array(l)
 
-      			while (l--) {
-       				 buf[l] = buffer[l]*0xFFFF;    //convert to 16 bit
-     			 }
-     			 return buf
-   		 }
-		recorder.connect(context.destination);
+    addSynth = document.getElementById("addSynth");
+    addSynth.onclick = function(){createOscillator(600, context, {dest, streamNode})};
 
-        addSynth = document.getElementById("addSynth");
-        addSynth.onclick = function(){createOscillator(600, context, recorder)};
-	});
 
-	client.on('stream', function(stream, meta) {
-		stream.on('data', function(data) {
-	        var source = context.createBufferSource();
-	        source.connect(context.destination);
-			var audio = new Float32Array(data);
-			var audioBuffer = context.createBuffer(1, audio.length, 44100);
-			audioBuffer.getChannelData(0).set(audio);
-			source.buffer = audioBuffer;
-            source.start();
-		});
-	});
-
-    createOscillator = function (frequency, acontext, parentNode) {
+    var createOscillator = function (frequency, acontext, connections) {
         var osc = acontext.createOscillator();
         osc.frequency.value = frequency;
-        osc.connect(parentNode);
+        for (var node=0; node < connections.length; node++){
+        	osc.connect(connections[node]);
+        }
+        
         osc.start();
 
         var synthRack = document.getElementById("synthRack");
@@ -70,4 +58,19 @@
         
     }
 
+
+	var streamPeer = function(call, acontext){
+		// Initiate existing calls array
+		if (!window.exisitingCalls){
+			window.existingCalls = [];
+		}
+		
+		//
+		call.on('stream', function(stream){
+			var audioStream = acontext.createMediaStreamSource(stream);
+			audioStream.connect(acontext.destination);
+		});
+		
+		window.existingCalls.push(call);
+	}
 })(this);
