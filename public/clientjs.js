@@ -28,15 +28,14 @@
 
 
     addSynth = document.getElementById("addSynth");
-    addSynth.onclick = function(){createOscillator(600, context, {dest, streamNode})};
+    addSynth.onclick = function(){createOscillator(600, context, dest, streamNode)};
 
 
-    var createOscillator = function (frequency, acontext, connections) {
+    var createOscillator = function (frequency, acontext, dest, streamNode) {
         var osc = acontext.createOscillator();
         osc.frequency.value = frequency;
-        for (var node=0; node < connections.length; node++){
-        	osc.connect(connections[node]);
-        }
+        osc.connect(dest);
+        osc.connect(streamNode);
         
         osc.start();
 
