@@ -5,7 +5,20 @@
 
 	// Stream node
 	var streamNode = context.createMediaStreamDestination();
-	var dest       = context.destination;
+
+    // Global volume
+    var globalVolumeNode = context.createGain();
+    globalVolumeNode.connect(context.destination);
+    globalVolumeNode.connect(streamNode);
+
+    var volumeField = document.getElementById("globalVolumeField")
+    volumeField.setAttribute("type", "number");
+    volumeField.setAttribute("min", "0");
+    volumeField.setAttribute("max", "100");
+    volumeField.setAttribute("value", 100);
+    volumeField.onchange = function(e){
+        globalVolumeNode.gain.value = this.value/100;
+    };
 	
 	//P2P part
     var peer = new Peer({host: window.location.hostname, port: 8081, path :'/peerjs'});
@@ -28,14 +41,16 @@
 
 
     addSynth = document.getElementById("addSynth");
-    addSynth.onclick = function(){createOscillator(600, context, dest, streamNode)};
+    addSynth.onclick = function(){createOscillator(600, context, globalVolumeNode,40)};
 
 
-    var createOscillator = function (frequency, acontext, dest, streamNode) {
+    var createOscillator = function (frequency, acontext, dest, gainValue) {
         var osc = acontext.createOscillator();
+        var gain = acontext.createGain();
         osc.frequency.value = frequency;
-        osc.connect(dest);
-        osc.connect(streamNode);
+        gain.gain.value = gainValue/100;
+        osc.connect(gain);
+        gain.connect(dest);
         
         osc.start();
 
@@ -52,9 +67,19 @@
         frequencyField.onchange = function(e){
             osc.frequency.value = this.value;
         };
+
+        var volumeField = document.createElement("input")
+        volumeField.setAttribute("type", "number");
+        volumeField.setAttribute("min", "0");
+        volumeField.setAttribute("max", "100");
+        volumeField.setAttribute("value", gainValue);
+        volumeField.onchange = function(e){
+            gain.gain.value = this.value/100;
+        };
+
         synth.appendChild(frequencyField);
+        synth.appendChild(volumeField);
         synthRack.appendChild(synth);
-        
     }
 
 
