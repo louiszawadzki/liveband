@@ -8,7 +8,7 @@
 	var dest       = context.destination;
 	
 	//P2P part
-    var peer = new Peer({host: 'localhost', port: 8081, path :'/peerjs'});
+    var peer = new Peer({host: window.location.hostname, port: 8081, path :'/peerjs'});
     peer.on('open', function(id) {
     	console.log('My id is ' + id);
     });
