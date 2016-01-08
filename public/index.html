@@ -1,13 +1,24 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<script src="binary.js"></script>
-
+		<script src="peer.js"></script>
+		<title>LiveBand</title>
 	</head>
 	<body>
         <h1>LiveBand</h1>
-        <div id="synthRack">
-            <button id="addSynth">Add Synth</button>
-        </div>
+		<div id="music">
+			<div id="globalControls">
+				<div id="globalVolume">
+					<input type=number min="0" max="100" value="100" id="globalVolumeField"></input>
+				</div>			
+			</div>
+			<div id="synthRack">
+				<button id="addSynth">Add Synth</button>
+			</div>
+		</div>
+		<div id="p2p">
+			<input type="text" placeholder="ID to call" id="callto">
+			<button id="call">Call</button>
+		</div>
 		<script src='clientjs.js'></script>
 	</body>

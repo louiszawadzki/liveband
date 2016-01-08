@@ -1,55 +1,57 @@
 (function(window) {
-	var BUFFER_SIZE = 1024;
-	var client = new BinaryClient('ws://' + window.location.hostname + ':9000');
-	client.on('open', function(){
-		// create stream
-		window.Stream = client.createStream();
-		//set audio context
-		audioContext = window.AudioContext || window.webkitAudioContext;
-		context = new audioContext();	
+	//set audio context
+	audioContext = window.AudioContext || window.webkitAudioContext || window.mozAudioContext;
+	context = new audioContext();	
 
-		// create script processor that write the buffer into the channel
-  		recorder = context.createScriptProcessor(BUFFER_SIZE, 1, 1);
-  		recorder.onaudioprocess = function(e){
-            		var left = e.inputBuffer.getChannelData(0);
-            		window.Stream.write(left);
-                        for (var sample = 0; sample < left.length; sample++) {
-                        // make output equal to the same as the input
-                                e.outputBuffer.getChannelData(0)[sample] = left[sample];
-                        }
-                }
+	// Stream node
+	var streamNode = context.createMediaStreamDestination();
 
-		function convertoFloat32ToInt16(buffer) {
-      			var l = buffer.length;
-      			var buf = new Int16Array(l)
+    // Global volume
+    var globalVolumeNode = context.createGain();
+    globalVolumeNode.connect(context.destination);
+    globalVolumeNode.connect(streamNode);
 
-      			while (l--) {
-       				 buf[l] = buffer[l]*0xFFFF;    //convert to 16 bit
-     			 }
-     			 return buf
-   		 }
-		recorder.connect(context.destination);
+    var volumeField = document.getElementById("globalVolumeField")
+    volumeField.setAttribute("type", "number");
+    volumeField.setAttribute("min", "0");
+    volumeField.setAttribute("max", "100");
+    volumeField.setAttribute("value", 100);
+    volumeField.onchange = function(e){
+        globalVolumeNode.gain.value = this.value/100;
+    };
+	
+	//P2P part
+    var peer = new Peer({host: window.location.hostname, port: 8081, path :'/peerjs'});
+    peer.on('open', function(id) {
+    	console.log('My id is ' + id);
+    });
+    peer.on('call', function(call){
+    	call.answer(streamNode.stream);
+    	streamPeer(call, context);
+    	console.log('call successful!')
+    })
+	
+	// function for the button that triggers the call
+	document.getElementById('call').onclick = function(){
+		var callid = document.getElementById('callto').value;
+		var call = peer.call(callid, streamNode.stream);
+		
+		streamPeer(call, context);
+	};
 
-        addSynth = document.getElementById("addSynth");
-        addSynth.onclick = function(){createOscillator(600, context, recorder)};
-	});
 
-	client.on('stream', function(stream, meta) {
-		stream.on('data', function(data) {
-	        var source = context.createBufferSource();
-	        source.connect(context.destination);
-			var audio = new Float32Array(data);
-			var audioBuffer = context.createBuffer(1, audio.length, 44100);
-			audioBuffer.getChannelData(0).set(audio);
-			source.buffer = audioBuffer;
-            source.start();
-		});
-	});
+    addSynth = document.getElementById("addSynth");
+    addSynth.onclick = function(){createOscillator(600, context, globalVolumeNode,40)};
 
-    createOscillator = function (frequency, acontext, parentNode) {
+
+    var createOscillator = function (frequency, acontext, dest, gainValue) {
         var osc = acontext.createOscillator();
+        var gain = acontext.createGain();
         osc.frequency.value = frequency;
-        osc.connect(parentNode);
+        gain.gain.value = gainValue/100;
+        osc.connect(gain);
+        gain.connect(dest);
+        
         osc.start();
 
         var synthRack = document.getElementById("synthRack");
@@ -65,9 +67,34 @@
         frequencyField.onchange = function(e){
             osc.frequency.value = this.value;
         };
+
+        var volumeField = document.createElement("input")
+        volumeField.setAttribute("type", "number");
+        volumeField.setAttribute("min", "0");
+        volumeField.setAttribute("max", "100");
+        volumeField.setAttribute("value", gainValue);
+        volumeField.onchange = function(e){
+            gain.gain.value = this.value/100;
+        };
+
         synth.appendChild(frequencyField);
+        synth.appendChild(volumeField);
         synthRack.appendChild(synth);
-        
     }
 
+
+	var streamPeer = function(call, acontext){
+		// Initiate existing calls array
+		if (!window.exisitingCalls){
+			window.existingCalls = [];
+		}
+		
+		//
+		call.on('stream', function(stream){
+			var audioStream = acontext.createMediaStreamSource(stream);
+			audioStream.connect(acontext.destination);
+		});
+		
+		window.existingCalls.push(call);
+	}
 })(this);
